@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ikhlas College - Attendance Matrix</title>
+  <style>
+    :root { --bg-main: #0b111e; --bg-card: #151f32; --bg-input: #1e2d4a; --accent-blue: #3b82f6; --accent-emerald: #10b981; --accent-rose: #f43f5e; --accent-purple: #a855f7; --text-main: #f8fafc; --text-muted: #94a3b8; --border-color: rgba(255, 255, 255, 0.08); --radius-xl: 16px; --radius-md: 10px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; padding-bottom: 90px; overflow-x: hidden; }
+    .app-header { background: linear-gradient(135deg, #1e293b, var(--bg-card)); padding: 20px 16px; border-bottom: 1px solid var(--border-color); border-radius: 0 0 24px 24px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); text-align: center; }
+    .app-title-bold { font-size: 20px; font-weight: 800; color: var(--text-main); letter-spacing: -0.3px; line-height: 1.3; }
+    .app-subtitle-smart { font-size: 13px; font-weight: 600; color: var(--accent-blue); margin-top: 5px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .app-container { max-width: 480px; margin: 0 auto; padding: 16px; }
+    .tab-view { display: none; }
+    .tab-view.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .search-input, .date-input, .select-input, .text-input { width: 100%; background-color: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); padding: 12px 16px; border-radius: var(--radius-md); font-size: 14px; outline: none; transition: all 0.25s ease; }
+    .search-input:focus, .date-input:focus, .select-input:focus, .text-input:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+    .control-row { display: flex; gap: 10px; margin-top: 10px; }
+    .date-display-wrapper { position: relative; flex: 1; }
+    .date-display-text { pointer-events: none; }
+    .date-input-overlay { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: none; }
+    .flex-1 { flex: 1; }
+    .dashboard-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-xl); padding: 16px; display: flex; align-items: center; gap: 16px; margin-top: 16px; margin-bottom: 20px; }
+    .circle-box { position: relative; width: 86px; height: 86px; flex-shrink: 0; }
+    .circle-box svg { transform: rotate(-90deg); }
+    .circle-bg { fill: none; stroke: rgba(255,255,255,0.03); stroke-width: 10; }
+    .circle-progress { fill: none; stroke: var(--accent-blue); stroke-width: 10; stroke-linecap: round; stroke-dasharray: 238.76; stroke-dashoffset: 238.76; transition: stroke-dashoffset 0.5s ease; }
+    .circle-text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .circle-text .pct { font-size: 18px; font-weight: 800; }
+    .circle-text .lbl { font-size: 8px; color: var(--text-muted); text-transform: uppercase; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; flex: 1; }
+    .metric-pill { background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: var(--radius-md); }
+    .metric-pill .num { font-size: 14px; font-weight: 700; }
+    .metric-pill .lbl { font-size: 9px; color: var(--text-muted); text-transform: uppercase; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px; }
+    .section-title { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .date-tag { font-size: 12px; background: rgba(255,255,255,0.05); padding: 4px 12px; border-radius: 20px; white-space: nowrap; font-weight: 600; }
+    .roster-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+    .student-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-xl); padding: 14px; transition: all 0.25s; }
+    .student-card.is-present { border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.02); }
+    .student-card.is-absent { border-color: rgba(244, 63, 94, 0.3); background: rgba(244, 63, 94, 0.02); }
+    .student-card.is-leave { border-color: rgba(168, 85, 247, 0.3); background: rgba(168, 85, 247, 0.02); }
+    .student-info { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .roll-badge { width: 32px; height: 32px; background: rgba(255,255,255,0.05); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: var(--accent-blue); }
+    .student-name { font-size: 14px; font-weight: 700; }
+    .btn-group { display: flex; gap: 8px; }
+    .btn-action { flex: 1; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-muted); padding: 10px; font-size: 11px; font-weight: 700; border-radius: var(--radius-md); cursor: pointer; }
+    .btn-action.p-btn.active { background: var(--accent-emerald); color: white; }
+    .btn-action.a-btn.active { background: var(--accent-rose); color: white; }
+    .btn-action.l-btn.active { background: var(--accent-purple); color: white; }
+    .btn-primary { background: var(--accent-blue); color: white; border: none; padding: 14px; width: 100%; border-radius: var(--radius-md); font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 10px; }
+    .btn-success-submit { background: var(--accent-emerald); color: white; border: none; padding: 14px; width: 100%; border-radius: var(--radius-md); font-weight: 700; font-size: 14px; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2); }
+    .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 10px 14px; border-radius: var(--radius-md); font-size: 13px; font-weight: 600; cursor: pointer; }
+    .table-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-xl); overflow: hidden; margin-top: 14px; }
+    .scroll-wrapper { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    th { background: rgba(255,255,255,0.02); font-weight: 700; color: var(--text-muted); }
+    .sticky-col-1 { position: sticky; left: 0; background: #151f32; z-index: 5; }
+    .sticky-col-2 { position: sticky; left: 28px; background: #151f32; z-index: 5; }
+    .m-dot { width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 9px; font-weight: 900; }
+    .m-dot.p { background: rgba(16, 185, 129, 0.2); color: var(--accent-emerald); }
+    .m-dot.a { background: rgba(244, 63, 94, 0.2); color: var(--accent-rose); }
+    .m-dot.l { background: rgba(168, 85, 247, 0.2); color: var(--accent-purple); }
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-card); border-top: 1px solid var(--border-color); padding: 8px 16px; z-index: 100; }
+    .nav-tabs-wrapper { max-width: 480px; margin: 0 auto; display: flex; justify-content: space-between; }
+    .nav-btn { background: transparent; border: none; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; font-size: 11px; font-weight: 600; padding: 6px 12px; border-radius: var(--radius-md); flex: 1; }
+    .nav-btn.active { color: var(--text-main); background: rgba(255, 255, 255, 0.05); }
+    .nav-btn span:first-child { font-size: 18px; }
+    .lock-bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: var(--radius-md); margin-top: 10px; font-size: 13px; font-weight: 700; }
+    .lock-bar.locked { background: rgba(244, 63, 94, 0.12); border: 1px solid rgba(244, 63, 94, 0.3); color: var(--accent-rose); }
+    .lock-bar.unlocked { background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--accent-emerald); }
+    .btn-action:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-success-submit:disabled { background: #475569; cursor: not-allowed; box-shadow: none; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 20px; }
+    .modal-box { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-xl); padding: 20px; width: 100%; max-width: 340px; }
+    .modal-box h3 { font-size: 15px; margin-bottom: 14px; }
+    .print-header { display: none; }
+    @media print {
+      body { background: #ffffff !important; color: #000000 !important; padding-bottom: 0; }
+      .bottom-nav, .app-header, .no-print, #view-live { display: none !important; }
+      .app-container { max-width: 100%; padding: 0; margin: 0; }
+      .print-header { display: block !important; text-align: center; margin-bottom: 16px; }
+      .print-header h2 { font-size: 16px; font-weight: 800; color: #000; }
+      .print-header p { font-size: 12px; color: #333; margin-top: 2px; }
+      .table-card { background: #fff; border: 1px solid #333; box-shadow: none; border-radius: 0; }
+      table { font-size: 9px; color: #000; }
+      th, td { border: 1px solid #999; padding: 5px 4px; }
+      th { background: #eeeeee !important; color: #000 !important; }
+      .sticky-col-1, .sticky-col-2 { position: static; background: #fff !important; }
+      .m-dot { background: transparent !important; border: 1px solid #999; color: #000 !important; border-radius: 3px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-title-bold">Ikhlas College of Nursing and Allied Health Science's</div>
+    <div class="app-subtitle-smart">Smart Attendance System</div>
+  </header>
+  <main class="app-container">
+    <div id="view-live" class="tab-view active">
+      <input type="text" id="rosterSearch" oninput="drawRoster()" placeholder="Search name or roll..." class="search-input">
+      <div class="control-row">
+        <div class="date-display-wrapper flex-1">
+          <div id="rosterDateDisplay" class="date-input date-display-text"></div>
+          <input type="date" id="rosterDatePicker" onchange="handleDateChanged()" class="date-input-overlay">
+        </div>
+      </div>
+      <div id="lockBar" class="lock-bar">
+        <span id="lockStatusText"></span>
+        <button id="lockToggleBtn" class="btn-outline" style="padding:6px 14px; font-size:12px;"></button>
+      </div>
+      <div class="dashboard-card">
+        <div class="circle-box">
+          <svg width="86" height="86" viewBox="0 0 86 86">
+            <circle cx="43" cy="43" r="38" class="circle-bg"/>
+            <circle id="radialProgress" cx="43" cy="43" r="38" class="circle-progress"/>
+          </svg>
+          <div class="circle-text">
+            <span id="statPercent" class="pct">0%</span>
+            <span class="lbl">Done</span>
+          </div>
+        </div>
+        <div class="metrics-grid">
+          <div class="metric-pill"><div id="m-total" class="num">0</div><div class="lbl">Total Pool</div></div>
+          <div class="metric-pill"><div id="m-present" class="num" style="color:var(--accent-emerald)">0</div><div class="lbl">Present</div></div>
+          <div class="metric-pill"><div id="m-absent" class="num" style="color:var(--accent-rose)">0</div><div class="lbl">Absent</div></div>
+          <div class="metric-pill"><div id="m-leave" class="num" style="color:var(--accent-purple)">0</div><div class="lbl">Leave</div></div>
+        </div>
+      </div>
+      <div class="section-header">
+        <h2 class="section-title">Students' Name</h2>
+        <span id="currentDateTag" class="date-tag"></span>
+      </div>
+      <div id="rosterTarget" class="roster-list"></div>
+      <button onclick="submitAttendanceData()" id="submitBtn" class="btn-success-submit">Submit Attendance</button>
+    </div>
+    <div id="view-reports" class="tab-view">
+      <div class="print-header">
+        <h2>Ikhlas College of Nursing and Allied Health Science's</h2>
+        <p>Smart Attendance System — Attendance Report</p>
+        <p id="printRangeLabel"></p>
+      </div>
+      <div class="section-header no-print">
+        <h2 class="section-title" id="matrixTitleHeader">Attendance Report</h2>
+        <div style="display:flex; gap:6px;">
+          <button onclick="printReport()" class="btn-outline">🖨️ Print</button>
+          <button onclick="exportData()" class="btn-outline" style="border-color:var(--accent-emerald); color:var(--accent-emerald)">📊 Export Excel</button>
+        </div>
+      </div>
+      <div style="margin-bottom: 10px;" class="no-print">
+        <input type="text" id="matrixStudentSearch" oninput="drawMatrix()" placeholder="🔍 Filter by Student Name/Roll..." class="search-input">
+      </div>
+      <div class="control-row no-print" style="margin-bottom: 14px;">
+        <select id="reportRangeType" onchange="handleRangeTypeChange()" class="select-input" style="width: 120px;">
+          <option value="weekly">Weekly</option>
+          <option value="monthly" selected>Monthly</option>
+        </select>
+        <select id="daySelector" onchange="handleDropdownDateChanged()" class="select-input flex-1"><option value="">Select Day</option></select>
+        <select id="monthSelector" onchange="handleDropdownDateChanged()" class="select-input flex-1"><option value="">Select Month</option></select>
+        <select id="yearSelector" onchange="handleDropdownDateChanged()" class="select-input flex-1"><option value="">Select Year</option></select>
+      </div>
+      <div class="table-card"><div class="scroll-wrapper"><table id="matrixTable"></table></div></div>
+    </div>
+  </main>
+  <nav class="bottom-nav">
+    <div class="nav-tabs-wrapper">
+      <button onclick="navigate('live')" id="nav-live" class="nav-btn active"><span>📅</span><span>Daily Attendance</span></button>
+      <button onclick="navigate('reports')" id="nav-reports" class="nav-btn"><span>📊</span><span>Attendance Report</span></button>
+    </div>
+  </nav>
+
+  <div id="unlockModal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <h3>🔒 Enter Password to Unlock</h3>
+      <input type="password" id="unlockPasswordInput" class="text-input" placeholder="Password" style="margin-bottom:12px;">
+      <div class="control-row" style="margin-top:0;">
+        <button onclick="closeUnlockModal()" class="btn-outline flex-1">Cancel</button>
+        <button onclick="confirmUnlock()" class="btn-primary flex-1" style="margin-top:0;">Unlock</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    window.STUDENT_ROSTER = [
+      { roll: 1, name: "ABBAS ALI KHAN" }, { roll: 2, name: "ABDUL JALEEL CHANDIO" }, { roll: 3, name: "ABDUL MOEED AHMED" }, { roll: 4, name: "ABRAM PARAJIA" }, { roll: 5, name: "ADIL AHMED PATHAN" }, { roll: 6, name: "ALI JAN DAHAR" }, { roll: 7, name: "ALINA ALI DATUSING" }, { roll: 8, name: "AMJAD ALI KHAN" }, { roll: 9, name: "AMMAR AHMED MUGHAL" }, { roll: 10, name: "AMOOS NAEEM JOHN MASIHI" }, { roll: 11, name: "ANAS KHUSHI ABBASI" }, { roll: 12, name: "BASIT HUSSAIN KHAWAJA" }, { roll: 13, name: "BHART KUMAR MENGHWAR" }, { roll: 14, name: "DANISH HUSSAIN ZORA" }, { roll: 15, name: "FARHAN AHMED SOOMRO" }, { roll: 16, name: "HAMMADULLAH LAGHARI" }, { roll: 17, name: "HASNAIN ABBAS KOLA" }, { roll: 18, name: "IBRAR JUNEJO" }, { roll: 19, name: "INAYAT UR REHMAN KHAN" }, { roll: 20, name: "IRFANULLAH KHAN" }, { roll: 21, name: "JUREEM GHOURI" }, { roll: 22, name: "KAMRAN ALI UJJAN" }, { roll: 23, name: "KASHIF YOUSAF MASIH" }, { roll: 24, name: "MOHSIN RAZA MIR MIR" }, { roll: 25, name: "MUHAMMAD AKBAR UJJAN" }, { roll: 26, name: "MUHAMMAD ARSALAN MUGHAL" }, { roll: 27, name: "MUHAMMAD HAMID ABBASI" }, { roll: 28, name: "MUHAMMAD SAQLAIN LAKVERA" }, { roll: 29, name: "MUHAMMAD USAMA KHAANI" }, { roll: 30, name: "MUHAMMAD USMAN BROHI" }, { roll: 31, name: "MUHEER SHALAL GHOURI" }, { roll: 32, name: "MUNAZZA BATOOL LONE" }, { roll: 33, name: "NATASHA MUGHAL" }, { roll: 34, name: "NEERAJ KUMAR MEGHWAR" }, { roll: 35, name: "NEHA MASIH" }, { roll: 36, name: "NISHA IRFAN IRFAN KHAZAN" }, { roll: 37, name: "PARKASH KUMAR MENGHWAR" }, { roll: 38, name: "PERVAZ ALI JUNEJO" }, { roll: 39, name: "SADAQAT ALI CHACHAR" }, { roll: 40, name: "SAGAR ABBAS SAHOTRA" }, { roll: 41, name: "SAKHAR-UL-DIN GAJU" }, { roll: 42, name: "SALMAN KHAN KHAN" }, { roll: 43, name: "SHAHZAIB PERVAIZ MASIH" }, { roll: 44, name: "TAHSIN SABA DASHMANEY" }, { roll: 45, name: "VALESH KUMAR KUMAR" }, { roll: 46, name: "WAJAHAT HUSSAIN SULTANI" }, { roll: 47, name: "WAQAR ALI JALBANI" }, { roll: 48, name: "WAQAS NADEEM GILL SAAB" }, { roll: 49, name: "ZAYAAN ALI POONJANI" }, { roll: 50, name: "ZEESHAN GUL JUNEJO" }
+    ];
+
+    let attendanceData = JSON.parse(localStorage.getItem('ikhlas_attendance')) || {};
+    let selectedDate = new Date().toISOString().split('T')[0];
+    const LOCK_PASSWORD = "2007";
+    let isLocked = JSON.parse(localStorage.getItem('ikhlas_locked') || 'false');
+    const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('rosterDatePicker').value = selectedDate;
+      const now = new Date();
+      document.getElementById('monthSelector').value = (now.getMonth() + 1).toString().padStart(2, '0');
+      document.getElementById('yearSelector').value = now.getFullYear();
+      populateDropdownOptions(); syncDropdownsWithDate(selectedDate); updateDateTag(); updateRosterDateDisplay(); renderLockUI(); drawRoster(); drawMatrix();
+    });
+
+    function navigate(viewName) {
+      document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById('view-' + viewName).classList.add('active'); document.getElementById('nav-' + viewName).classList.add('active');
+      if(viewName === 'reports') drawMatrix();
+    }
+
+    function populateDropdownOptions() {
+      const daySel = document.getElementById('daySelector'), monthSel = document.getElementById('monthSelector'), yearSel = document.getElementById('yearSelector');
+      daySel.innerHTML = ''; for(let i=1; i<=31; i++) daySel.innerHTML += `<option value="${i.toString().padStart(2,'0')}">${i.toString().padStart(2,'0')}</option>`;
+      monthSel.innerHTML = ''; MONTHS.forEach((m, idx) => monthSel.innerHTML += `<option value="${(idx + 1).toString().padStart(2,'0')}">${m}</option>`);
+      yearSel.innerHTML = ''; for(let y=2024; y<=2030; y++) yearSel.innerHTML += `<option value="${y}">${y}</option>`;
+    }
+
+    function syncDropdownsWithDate(dateStr) { const [y, m, d] = dateStr.split('-'); document.getElementById('daySelector').value = d; document.getElementById('monthSelector').value = m; document.getElementById('yearSelector').value = y; }
+    function handleRangeTypeChange() { document.getElementById('daySelector').style.display = (document.getElementById('reportRangeType').value === 'weekly') ? 'block' : 'none'; drawMatrix(); }
+    function handleDropdownDateChanged() { drawMatrix(); }
+    function handleDateChanged() { selectedDate = document.getElementById('rosterDatePicker').value; syncDropdownsWithDate(selectedDate); updateDateTag(); updateRosterDateDisplay(); drawRoster(); }
+    function formatReadableDate(dateStr) {
+      const d = new Date(dateStr + 'T00:00:00');
+      const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+      return d.toLocaleDateString('en-GB', options);
+    }
+    function updateDateTag() { document.getElementById('currentDateTag').innerText = formatReadableDate(selectedDate); }
+    function updateRosterDateDisplay() { document.getElementById('rosterDateDisplay').innerText = formatReadableDate(selectedDate); }
+
+    function renderLockUI() {
+      const bar = document.getElementById('lockBar');
+      const statusText = document.getElementById('lockStatusText');
+      const btn = document.getElementById('lockToggleBtn');
+      if(isLocked) {
+        bar.className = 'lock-bar locked';
+        statusText.innerText = '🔒 Attendance Locked';
+        btn.innerText = 'Unlock';
+        btn.onclick = openUnlockModal;
+      } else {
+        bar.className = 'lock-bar unlocked';
+        statusText.innerText = '🔓 Editing Unlocked';
+        btn.innerText = 'Lock';
+        btn.onclick = lockAttendance;
+      }
+    }
+
+    function lockAttendance() {
+      isLocked = true;
+      localStorage.setItem('ikhlas_locked', 'true');
+      renderLockUI();
+      drawRoster();
+    }
+
+    function openUnlockModal() {
+      document.getElementById('unlockPasswordInput').value = '';
+      document.getElementById('unlockModal').style.display = 'flex';
+    }
+
+    function closeUnlockModal() {
+      document.getElementById('unlockModal').style.display = 'none';
+    }
+
+    function confirmUnlock() {
+      const val = document.getElementById('unlockPasswordInput').value;
+      if(val === LOCK_PASSWORD) {
+        isLocked = false;
+        localStorage.setItem('ikhlas_locked', 'false');
+        closeUnlockModal();
+        renderLockUI();
+        drawRoster();
+      } else {
+        alert('Galat password. Dobara koshish karein.');
+      }
+    }
+
+    function drawRoster() {
+      const target = document.getElementById('rosterTarget'), search = document.getElementById('rosterSearch').value.toLowerCase(), dayData = attendanceData[selectedDate] || {};
+      target.innerHTML = '';
+      window.STUDENT_ROSTER.forEach(s => {
+        if(search && !s.name.toLowerCase().includes(search) && !s.roll.toString().includes(search)) return;
+        const status = dayData[s.roll] || '';
+        const card = document.createElement('div'); card.className = 'student-card ' + (status === 'P' ? 'is-present' : status === 'A' ? 'is-absent' : status === 'L' ? 'is-leave' : '');
+        const disabledAttr = isLocked ? 'disabled' : '';
+        card.innerHTML = `<div class="student-info"><div class="roll-badge">${s.roll}</div><div class="student-name">${s.name}</div></div><div class="btn-group"><button onclick="markStatus(${s.roll}, 'P')" class="btn-action p-btn ${status==='P'?'active':''}" ${disabledAttr}>Present</button><button onclick="markStatus(${s.roll}, 'A')" class="btn-action a-btn ${status==='A'?'active':''}" ${disabledAttr}>Absent</button><button onclick="markStatus(${s.roll}, 'L')" class="btn-action l-btn ${status==='L'?'active':''}" ${disabledAttr}>Leave</button></div>`;
+        target.appendChild(card);
+      });
+      updateMetrics();
+      const submitBtn = document.getElementById('submitBtn');
+      if(submitBtn) submitBtn.disabled = isLocked;
+    }
+
+    function markStatus(roll, status) {
+      if(isLocked) return;
+      if(!attendanceData[selectedDate]) attendanceData[selectedDate] = {};
+      attendanceData[selectedDate][roll] = (attendanceData[selectedDate][roll] === status) ? undefined : status;
+      localStorage.setItem('ikhlas_attendance', JSON.stringify(attendanceData)); drawRoster();
+    }
+
+    function updateMetrics() {
+      const total = window.STUDENT_ROSTER.length, dData = attendanceData[selectedDate] || {};
+      let p=0, a=0, l=0; Object.values(dData).forEach(v => { if(v==='P') p++; if(v==='A') a++; if(v==='L') l++; });
+      document.getElementById('m-total').innerText = total; document.getElementById('m-present').innerText = p; document.getElementById('m-absent').innerText = a; document.getElementById('m-leave').innerText = l;
+      const pct = total > 0 ? Math.round(((p+a+l)/total)*100) : 0;
+      document.getElementById('statPercent').innerText = pct + '%'; document.getElementById('radialProgress').style.strokeDashoffset = 238.76 - (238.76 * pct / 100);
+    }
+
+    function getWeekDates(y, m, d) {
+      const start = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
+      const dates = [];
+      for(let i = 0; i < 7; i++) {
+        const dt = new Date(start);
+        dt.setDate(start.getDate() + i);
+        dates.push({
+          y: dt.getFullYear(),
+          m: (dt.getMonth() + 1).toString().padStart(2, '0'),
+          d: dt.getDate().toString().padStart(2, '0'),
+          label: dt.getDate() + '/' + (dt.getMonth() + 1)
+        });
+      }
+      return dates;
+    }
+
+    function computeReportDateList() {
+      const rangeType = document.getElementById('reportRangeType').value;
+      const y = document.getElementById('yearSelector').value;
+      const m = document.getElementById('monthSelector').value;
+      if(rangeType === 'weekly') {
+        const d = document.getElementById('daySelector').value || '01';
+        return { rangeType, y, m, dateList: getWeekDates(y, m, d) };
+      }
+      const days = new Date(y, m, 0).getDate();
+      const dateList = [];
+      for(let d = 1; d <= days; d++) dateList.push({ y, m, d: d.toString().padStart(2, '0'), label: d.toString() });
+      return { rangeType, y, m, dateList };
+    }
+
+    function drawMatrix() {
+      const { rangeType, y, m, dateList } = computeReportDateList();
+      const table = document.getElementById('matrixTable');
+      let html = `<thead><tr><th class="sticky-col-1">Roll</th><th class="sticky-col-2">Name</th>`;
+      dateList.forEach(dd => html += `<th>${dd.label}</th>`);
+      html += `<th>Present</th><th>Absent</th><th>Leave</th><th>Attendance %</th></tr></thead><tbody>`;
+      window.STUDENT_ROSTER.forEach(s => {
+        if(document.getElementById('matrixStudentSearch').value && !s.name.toLowerCase().includes(document.getElementById('matrixStudentSearch').value.toLowerCase())) return;
+        html += `<tr><td class="sticky-col-1">${s.roll}</td><td class="sticky-col-2">${s.name}</td>`;
+        let p=0, a=0, l=0;
+        dateList.forEach(dd => {
+          const dateKey = `${dd.y}-${dd.m}-${dd.d}`;
+          const val = attendanceData[dateKey]?.[s.roll] || '-';
+          if(val==='P') p++; if(val==='A') a++; if(val==='L') l++;
+          html += `<td><div class="m-dot ${val.toLowerCase()}">${val}</div></td>`;
+        });
+        const marked = p + a + l;
+        const pct = marked > 0 ? Math.round((p / marked) * 100) : 0;
+        html += `<td><b style="color:var(--accent-emerald)">${p}</b></td><td><b style="color:var(--accent-rose)">${a}</b></td><td><b style="color:var(--accent-purple)">${l}</b></td><td><b>${pct}%</b></td>`;
+        html += `</tr>`;
+      });
+      table.innerHTML = html + `</tbody>`;
+      updatePrintRangeLabel(rangeType, dateList, y, m);
+    }
+
+    function updatePrintRangeLabel(rangeType, dateList, y, m) {
+      if(rangeType === 'weekly' && dateList.length) {
+        const first = dateList[0], last = dateList[dateList.length - 1];
+        document.getElementById('printRangeLabel').innerText = `Weekly Report — ${first.d}/${first.m}/${first.y} to ${last.d}/${last.m}/${last.y}`;
+      } else {
+        const monthName = MONTHS[parseInt(m, 10) - 1] || '';
+        document.getElementById('printRangeLabel').innerText = `Monthly Report — ${monthName} ${y}`;
+      }
+    }
+
+    function printReport() {
+      drawMatrix();
+      window.print();
+    }
+
+    function submitAttendanceData() {
+      if(isLocked) { alert('Attendance locked hai. Pehle unlock karein.'); return; }
+      alert("Attendance Data Saved!");
+    }
+    function exportData() {
+      const { rangeType, y, m, dateList } = computeReportDateList();
+      const monthName = MONTHS[parseInt(m, 10) - 1] || '';
+      const searchVal = (document.getElementById('matrixStudentSearch').value || '').toLowerCase();
+      const rangeLabel = rangeType === 'weekly' && dateList.length
+        ? `Weekly Report - ${dateList[0].d}/${dateList[0].m}/${dateList[0].y} to ${dateList[dateList.length-1].d}/${dateList[dateList.length-1].m}/${dateList[dateList.length-1].y}`
+        : `Monthly Report - ${monthName} ${y}`;
+
+      const headerRow = ["Roll", "Name"];
+      dateList.forEach(dd => headerRow.push(dd.label));
+      headerRow.push("Present", "Absent", "Leave", "Attendance %");
+
+      const rows = [
+        ["Ikhlas College of Nursing and Allied Health Science's"],
+        [`Smart Attendance System - ${rangeLabel}`],
+        [],
+        headerRow
+      ];
+
+      window.STUDENT_ROSTER.forEach(s => {
+        if(searchVal && !s.name.toLowerCase().includes(searchVal) && !s.roll.toString().includes(searchVal)) return;
+        const row = [s.roll, s.name];
+        let p = 0, a = 0, l = 0;
+        dateList.forEach(dd => {
+          const dateKey = `${dd.y}-${dd.m}-${dd.d}`;
+          const val = attendanceData[dateKey]?.[s.roll] || '-';
+          if(val==='P') p++; if(val==='A') a++; if(val==='L') l++;
+          row.push(val);
+        });
+        const marked = p + a + l;
+        const pct = marked > 0 ? Math.round((p / marked) * 100) : 0;
+        row.push(p, a, l, pct + '%');
+        rows.push(row);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      const totalCols = headerRow.length;
+      ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: totalCols - 1 } }
+      ];
+      const cols = [{ wch: 6 }, { wch: 28 }];
+      dateList.forEach(() => cols.push({ wch: 5 }));
+      cols.push({ wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 13 });
+      ws['!cols'] = cols;
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+      const fileSuffix = rangeType === 'weekly' ? `Week_${dateList[0].d}-${dateList[0].m}` : `${monthName}_${y}`;
+      XLSX.writeFile(wb, `Attendance_${fileSuffix}.xlsx`);
+    }
+  </script>
+</body>
+</html>
